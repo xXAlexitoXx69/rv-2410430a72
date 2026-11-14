@@ -216,7 +216,7 @@ function mountScrollWorld(container, config) {
         const k = order[q++], im = new Image();
         im.onload = () => { if (!s.ready) { s.ready = true; read(); } s.drawn = -1; next(); };
         im.onerror = next;
-        im.src = `${s.frames.dir}/f${String(k + 1).padStart(4, '0')}.jpg`;
+        im.src = `${s.frames.dir}/f${String(k + 1).padStart(4, '0')}.jpg${s.frames.q || ''}`;
         s.imgs[k] = im;
       };
       for (let p = 0; p < 4; p++) next();
