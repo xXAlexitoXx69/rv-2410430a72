@@ -22,16 +22,16 @@
   <div id="top"></div>
   <div id="world"></div>
 
-  <script src="scrub-engine.js?r=3"></script>
+  <script src="scrub-engine.js?r=4"></script>
   <script>
-    const FRAMES = { entrada: 174, cocina: 192, despacho: 126, bano: 133, bano2: 133, principal: 61, dormitorio2: 87 };
+    const FRAMES = { entrada: 174, cocina: 192, despacho: 126, bano: 132, bano2: 132, principal: 60, dormitorio2: 87 };
     const FRAMESD = { entrada: 174, cocina: 192, despacho: 126, bano: 132, bano2: 132, principal: 60, dormitorio2: 87 };
     const S = (id, label, scroll, eyebrow, title, body, extra) => Object.assign({
       id, label, scroll, linger: 0.3,
       still: `assets/img/${id}.jpg`, stillMobile: `assets/img/${id}-m.jpg`,
       clip: `assets/vid/${id}.mp4`, clipMobile: `assets/vid/${id}-m.mp4`,
-      framesMobile: { dir: `assets/frames/${id}`, count: FRAMES[id], q: "?r=3" },
-      framesDesktop: { dir: `assets/framesd/${id}`, count: FRAMESD[id], q: "?r=3" },
+      framesMobile: { dir: `assets/frames/${id}`, count: FRAMES[id], q: "?r=4" },
+      framesDesktop: { dir: `assets/framesd/${id}`, count: FRAMESD[id], q: "?r=4" },
       accent: '#d9b98a', eyebrow, title, body, tags: []
     }, extra || {});
 
