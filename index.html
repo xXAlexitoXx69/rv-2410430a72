@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Recorrido vivienda</title>
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root, .sw-root {
+      --sw-bg: #12100d;
+      --sw-ink: #f4efe6;
+      --sw-ink-soft: #b9b0a1;
+      --sw-accent: #d9b98a;
+      --sw-font-display: 'Fraunces', Georgia, serif;
+      --sw-font-body: 'Inter', system-ui, sans-serif;
+    }
+    html, body { margin: 0; background: var(--sw-bg); }
+  </style>
+</head>
+<body>
+  <div id="top"></div>
+  <div id="world"></div>
+
+  <script src="scrub-engine.js"></script>
+  <script>
+    const S = (id, label, scroll, eyebrow, title, body, extra) => Object.assign({
+      id, label, scroll, linger: 0.3,
+      still: `assets/img/${id}.jpg`, stillMobile: `assets/img/${id}-m.jpg`,
+      clip: `assets/vid/${id}.mp4`, clipMobile: `assets/vid/${id}-m.mp4`,
+      accent: '#d9b98a', eyebrow, title, body, tags: []
+    }, extra || {});
+
+    mountScrollWorld(document.getElementById('world'), {
+      brand: { name: 'Recorrido virtual', href: '#top' },
+      hint: 'desliza para entrar',
+      crossfade: 0.06,
+      atmosphere: false,
+      sections: [
+        S('entrada',     'Entrada',     2.4, 'Bienvenido',     'Pasa y recorre la casa.',  'Recibidor y pasillo de entrada.'),
+        S('cocina',      'Cocina',      2.6, 'Zona de día',    'Cocina',                   'Cocina con zona de comedor y despensa.'),
+        S('despacho',    'Despacho',    1.8, 'Zona de día',    'Despacho',                 'Un espacio de trabajo con luz natural.'),
+        S('bano',        'Baño',        1.8, 'Zona de noche',  'Baño',                     'Baño completo.'),
+        S('bano2',       'Baño 2',      1.8, 'Zona de noche',  'Baño 2',                   'Segundo baño.'),
+        S('principal',   'Principal',   1.4, 'Zona de noche',  'Dormitorio principal',     ''),
+        S('dormitorio2', 'Dormitorio 2',1.6, 'Zona de noche',  'Dormitorio 2',             'Fin del recorrido.'),
+      ],
+      // El vídeo es una sola toma continua: no hay conectores, las estancias se encadenan directamente.
+      connectors: [null, null, null, null, null, null],
+    });
+  </script>
+</body>
+</html>
