@@ -86,7 +86,7 @@ function mountScrollWorld(container, config) {
   // ---- build the interleaved segment chain: dive0, conn0, dive1, … diveN-1 ----
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
-    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, frames: s.framesMobile, still: s.still, stillM: s.stillMobile,
+    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, framesM: s.framesMobile, framesD: s.framesDesktop, still: s.still, stillM: s.stillMobile,
                    accent: s.accent, w: s.scroll || DIVE_W, linger: s.linger || 0 };
     SEGMENTS.push(dive);
     s._seg = dive;
@@ -202,7 +202,8 @@ function mountScrollWorld(container, config) {
     s.loading = true;
     // Phones: iOS Safari won't repaint a paused <video> on seek, so scrub an image
     // sequence on a canvas instead (framesMobile: { dir, count }).
-    if (isMobile() && s.frames) {
+    s.frames = isMobile() ? s.framesM : (s.framesD || null);
+    if (s.frames) {
       const cv = document.createElement('canvas');
       cv.className = 'sw-scene__video';
       s.ctx = cv.getContext('2d'); s.imgs = new Array(s.frames.count); s.drawn = -1;
@@ -261,7 +262,7 @@ function mountScrollWorld(container, config) {
       if (near) loadClip(s);
       // iOS limits how many videos can decode at once: release clips far from view
       // (the blob is kept, so coming back needs no new download).
-      else if (isMobile() && (s.video || s.loading) && (y < s.start - 3 * vh || y > s.end + 3 * vh)) unloadClip(s);
+      else if ((isMobile() || s.frames) && (s.video || s.loading) && (y < s.start - 3 * vh || y > s.end + 3 * vh)) unloadClip(s);
       const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
       s.target = s.linger ? lingerEase(local, s.linger) : local;
       let outside = 0;
@@ -322,8 +323,24 @@ function mountScrollWorld(container, config) {
           const cv = s.video, dpr = Math.min(window.devicePixelRatio || 1, 2);
           const W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
           if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-          const sc = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc;
-          s.ctx.drawImage(im, (W - w) / 2, (H - h) * 0.46, w, h);
+          const iw = im.naturalWidth, ih = im.naturalHeight;
+          const cover = Math.max(W / iw, H / ih), fit = Math.min(W / iw, H / ih);
+          if (W / H > iw / ih * 1.15) {
+            // Wide screen + portrait footage: blurred fill behind, sharp full frame centred.
+            if (!s.bg) { s.bg = document.createElement('canvas'); s.bgx = s.bg.getContext('2d'); }
+            const bw = 64, bh = Math.round(64 * H / W);
+            s.bg.width = bw; s.bg.height = bh;
+            const bs = Math.max(bw / iw, bh / ih);
+            s.bgx.drawImage(im, (bw - iw * bs) / 2, (bh - ih * bs) / 2, iw * bs, ih * bs);
+            s.ctx.imageSmoothingQuality = 'high';
+            s.ctx.drawImage(s.bg, 0, 0, W, H);
+            s.ctx.fillStyle = 'rgba(10,9,7,.45)'; s.ctx.fillRect(0, 0, W, H);
+            const w = iw * fit, h = ih * fit;
+            s.ctx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+          } else {
+            const w = iw * cover, h = ih * cover;
+            s.ctx.drawImage(im, (W - w) / 2, (H - h) * 0.46, w, h);
+          }
           s.lastIm = im; s.drawn = k;
         }
         continue;
