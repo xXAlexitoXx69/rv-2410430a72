@@ -20,7 +20,7 @@ dormitorio2 68 75.2" | while read id a b; do
   "$FF" -nostdin -v error -y -ss "$a" -t "$d" -i "$SRC" -an -filter_complex \
     "[0:v]$LOOK,split[f][g];[g]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=40:2,eq=brightness=-0.12[bg];[f]scale=-2:1080,unsharp=5:5:0.6[fg];[bg][fg]overlay=(W-w)/2:0" \
     -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -r 24 -g 8 -keyint_min 8 -sc_threshold 0 -movflags +faststart assets/vid/$id.mp4
-  "$FF" -nostdin -v error -y -i assets/vid/$id-m.mp4 -vf "fps=12,scale=540:-2" -q:v 5 /dev/null
+  "$FF" -nostdin -v error -y -ss "$a" -t "$d" -i "$SRC" -vf "$LOOK,fps=12,scale=810:-2:flags=lanczos,unsharp=5:5:0.6" -q:v 3 assets/frames/$id/f%04d.jpg
   "$FF" -nostdin -v error -y -ss "$a" -t "$d" -i "$SRC" -vf "$LOOK,fps=12,scale=1080:-2,unsharp=5:5:0.5" -q:v 4 assets/framesd/$id/f%04d.jpg
   "$FF" -nostdin -v error -y -i assets/vid/$id.mp4 -frames:v 1 -q:v 3 assets/img/$id.jpg
   "$FF" -nostdin -v error -y -i assets/vid/$id-m.mp4 -frames:v 1 -q:v 3 assets/img/$id-m.jpg
