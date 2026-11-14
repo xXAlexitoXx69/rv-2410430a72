@@ -86,7 +86,7 @@ function mountScrollWorld(container, config) {
   // ---- build the interleaved segment chain: dive0, conn0, dive1, … diveN-1 ----
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
-    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile,
+    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, frames: s.framesMobile, still: s.still, stillM: s.stillMobile,
                    accent: s.accent, w: s.scroll || DIVE_W, linger: s.linger || 0 };
     SEGMENTS.push(dive);
     s._seg = dive;
@@ -200,6 +200,27 @@ function mountScrollWorld(container, config) {
     // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
     if (reduce || s.loading || !s.clip) return;
     s.loading = true;
+    // Phones: iOS Safari won't repaint a paused <video> on seek, so scrub an image
+    // sequence on a canvas instead (framesMobile: { dir, count }).
+    if (isMobile() && s.frames) {
+      const cv = document.createElement('canvas');
+      cv.className = 'sw-scene__video';
+      s.ctx = cv.getContext('2d'); s.imgs = new Array(s.frames.count); s.drawn = -1;
+      s.el.appendChild(cv); s.video = cv; s.hasClip = true;
+      const n = s.frames.count, order = [];
+      for (const st of [8, 4, 2, 1]) for (let k = 0; k < n; k += st) if (!s.imgs[k] && !order.includes(k)) order.push(k);
+      let q = 0;
+      const next = () => {
+        if (!s.loading || q >= order.length) return;
+        const k = order[q++], im = new Image();
+        im.onload = () => { if (!s.ready) { s.ready = true; read(); } s.drawn = -1; next(); };
+        im.onerror = next;
+        im.src = `${s.frames.dir}/f${String(k + 1).padStart(4, '0')}.jpg`;
+        s.imgs[k] = im;
+      };
+      for (let p = 0; p < 4; p++) next();
+      return;
+    }
     // Serve the lighter mobile encode on phones when one was provided.
     const url = (isMobile() && s.clipM) ? s.clipM : s.clip;
     (s.blob ? Promise.resolve(s.blob) : fetch(url).then(r => r.ok ? r.blob() : Promise.reject(new Error('404'))))
@@ -224,6 +245,7 @@ function mountScrollWorld(container, config) {
   function unloadClip(s) {
     s.loading = false; s.ready = false; s.hasClip = false;
     const v = s.video; s.video = null;
+    if (v && v.tagName === 'CANVAS') { s.imgs = null; s.ctx = null; s.lastIm = null; v.remove(); return; }
     if (v) { try { v.pause(); } catch (e) {} const u = v.src; v.removeAttribute('src'); try { v.load(); } catch (e) {} v.remove(); if (u) URL.revokeObjectURL(u); }
   }
 
@@ -287,6 +309,25 @@ function mountScrollWorld(container, config) {
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (!s.hasClip || !s.ready || !s.video) continue;
+      if (s.ctx) {   // image-sequence mode (phones)
+        if (!s.visible && s.drawn >= 0) continue;
+        s.cur += (s.target - s.cur) * (reduce ? 1 : 0.25);
+        const n = s.imgs.length, k = Math.round(clamp(s.cur) * (n - 1));
+        let im = null;
+        for (let d = 0; d < n && !im; d++) {
+          const a = s.imgs[k - d], b = s.imgs[k + d];
+          if (a && a.complete && a.naturalWidth) im = a; else if (b && b.complete && b.naturalWidth) im = b;
+        }
+        if (im && im !== s.lastIm) {
+          const cv = s.video, dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
+          if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+          const sc = Math.max(W / im.naturalWidth, H / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc;
+          s.ctx.drawImage(im, (W - w) / 2, (H - h) * 0.46, w, h);
+          s.lastIm = im; s.drawn = k;
+        }
+        continue;
+      }
       // Never queue a seek while the decoder is still resolving the last one.
       // On phones a fast flick would otherwise pile up seeks and freeze the clip;
       // cur keeps lerping, so we snap to the latest target the moment it's free.
